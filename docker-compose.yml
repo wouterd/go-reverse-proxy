@@ -1,0 +1,14 @@
+proxy:
+  build: .
+  links:
+    - backend
+    - backend_2
+  environment:
+    BACKEND: http://backend:80/
+  ports:
+    - "80"
+backend_2:
+  extends:
+    service: backend
+backend:
+  image: wouterd/go-hello-web
