@@ -33,6 +33,11 @@ func main() {
 		proxies[proxyNr].ServeHTTP(w, r)
 	})
 
+	http.HandleFunc("/foo/", func(w http.ResponseWriter, r *http.Request) {
+		proxyNr := rand.Intn(len(backends))
+		proxies[proxyNr].ServeHTTP(w, r)
+	})
+
 	port, exists := os.LookupEnv("SERVER_PORT")
 	if !exists {
 		port = "80"
