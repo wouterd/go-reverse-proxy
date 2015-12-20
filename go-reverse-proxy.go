@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 	"net/http/httputil"
+	"strings"
+	"math/rand"
 )
 
 func main() {
@@ -14,16 +16,21 @@ func main() {
 		backend = "http://localhost:1234"
 	}
 
-	bk, err := url.Parse(backend)
-	if err != nil {
-		log.Fatalln(err.Error())
+	backends := strings.Fields(backend)
+	var proxies []*httputil.ReverseProxy
+	for _, bkend := range backends {
+		bk, err := url.Parse(bkend)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+		log.Printf("Creating a reverse proxy for %v", bk)
+		proxy := httputil.NewSingleHostReverseProxy(bk)
+		proxies = append(proxies, proxy)
 	}
 
-	log.Printf("Creating a reverse proxy for %v", bk)
-	proxy := httputil.NewSingleHostReverseProxy(bk)
-
 	http.HandleFunc("/foo", func(w http.ResponseWriter, r *http.Request) {
-		proxy.ServeHTTP(w, r)
+		proxyNr := rand.Intn(len(backends))
+		proxies[proxyNr].ServeHTTP(w, r)
 	})
 
 	port, exists := os.LookupEnv("SERVER_PORT")

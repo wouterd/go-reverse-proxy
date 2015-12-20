@@ -2,12 +2,12 @@ proxy:
   build: .
   links:
     - backend
-    - backend_2
+    - backend-2
   environment:
-    BACKEND: http://backend:80/
+    BACKEND: http://backend:80/ http://backend-2:80
   ports:
     - "80"
-backend_2:
+backend-2:
   extends:
     service: backend
 backend:
