@@ -5,6 +5,8 @@ proxy:
     - backend-2
   environment:
     BACKEND: http://backend:80/ http://backend-2:80
+  volumes:
+    - ./endpoints.yaml:/etc/endpoints.yaml
   ports:
     - "80"
 backend-2:

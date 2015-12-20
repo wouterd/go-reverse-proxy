@@ -4,39 +4,55 @@ import (
 	"os"
 	"log"
 	"net/http"
-	"net/url"
+	"io/ioutil"
+	"gopkg.in/yaml.v2"
 	"net/http/httputil"
-	"strings"
 	"math/rand"
+	"net/url"
 )
 
+type Endpoint struct {
+	Path       string    `yaml:"path"`
+	Components []string    `yaml:"components"`
+}
+
+var config map[string]Endpoint
+
 func main() {
-	backend, exists := os.LookupEnv("BACKEND")
+
+	filename, exists := os.LookupEnv("CONFIG")
 	if !exists {
-		backend = "http://localhost:1234"
+		filename = "/etc/endpoints.yaml"
 	}
 
-	backends := strings.Fields(backend)
-	var proxies []*httputil.ReverseProxy
-	for _, bkend := range backends {
-		bk, err := url.Parse(bkend)
-		if err != nil {
-			log.Fatalln(err.Error())
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	for key, config := range config {
+		log.Printf("Creating proxies for %v", key)
+		var proxies []*httputil.ReverseProxy
+		for _, comp := range config.Components {
+			url, err := url.Parse(comp)
+			if err != nil {
+				log.Fatal(err.Error())
+			}
+			log.Printf("Creating a reverse proxy for %v", url.String())
+			proxy := httputil.NewSingleHostReverseProxy(url)
+			proxies = append(proxies, proxy)
 		}
-		log.Printf("Creating a reverse proxy for %v", bk)
-		proxy := httputil.NewSingleHostReverseProxy(bk)
-		proxies = append(proxies, proxy)
+		log.Printf("Creating a handler for %v", config.Path)
+		http.HandleFunc(config.Path, func(w http.ResponseWriter, r *http.Request) {
+			proxyNr := rand.Intn(len(proxies))
+			proxies[proxyNr].ServeHTTP(w, r)
+		})
 	}
-
-	http.HandleFunc("/foo", func(w http.ResponseWriter, r *http.Request) {
-		proxyNr := rand.Intn(len(backends))
-		proxies[proxyNr].ServeHTTP(w, r)
-	})
-
-	http.HandleFunc("/foo/", func(w http.ResponseWriter, r *http.Request) {
-		proxyNr := rand.Intn(len(backends))
-		proxies[proxyNr].ServeHTTP(w, r)
-	})
 
 	port, exists := os.LookupEnv("SERVER_PORT")
 	if !exists {

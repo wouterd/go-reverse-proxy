@@ -1,0 +1,10 @@
+foo:
+  path: /foo
+  components:
+  - http://backend/
+  - http://backend-2/
+api:
+  path: /api/
+  components:
+  - http://backend/
+  - http://backend-2/
