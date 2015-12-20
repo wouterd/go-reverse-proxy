@@ -12,28 +12,13 @@ import (
 )
 
 type Endpoint struct {
-	Path       string    `yaml:"path"`
-	Components []string    `yaml:"components"`
+	Path       string		`yaml:"path"`
+	Components []string		`yaml:"components"`
 }
-
-var config map[string]Endpoint
 
 func main() {
 
-	filename, exists := os.LookupEnv("CONFIG")
-	if !exists {
-		filename = "/etc/endpoints.yaml"
-	}
-
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
+	config := getConfig()
 
 	for key, config := range config {
 		log.Printf("Creating proxies for %v", key)
@@ -61,4 +46,23 @@ func main() {
 
 	log.Printf("Starting a server on port %v", port)
 	log.Fatal(http.ListenAndServe(":" + port, nil))
+}
+
+func getConfig() map[string]Endpoint {
+	filename, exists := os.LookupEnv("CONFIG")
+	if !exists {
+		filename = "/etc/endpoints.yaml"
+	}
+
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	var config map[string]Endpoint
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	return config
 }
